@@ -109,6 +109,24 @@ be able to use it again to update the visualization:
 > updates your PR. Adding content above the tag, or below the list is
 > safe though!
 
+#### Alternative: Use a stack comment region
+
+Using this alternative syntax does not suffer from the above caveaets.
+
+```md
+## Stack
+
+<!-- branch-stack-region-start -->
+<!-- branch-stack-region-end -->
+
+## Checklist
+
+[ ] Foo
+[ ] Bar
+[ ] Baz
+```
+
+
 ## Manual Configuration
 
 If you are using Git Town v11 and below, or are setting up the action for a repository

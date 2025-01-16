@@ -42,10 +42,12 @@ describe('updateDescription', () => {
     const expected = [
       '## Description',
       '',
-      '<!-- branch-stack -->',
+      '<!-- branch-stack-region-start -->',
       '',
       '- main',
       '  - \\#2',
+      '',
+      '<!-- branch-stack-region-end -->',
       '',
     ].join('\n')
 
@@ -103,6 +105,65 @@ There may be things here we don't want to overwrite.
       '',
       '- main',
       '  - \\#1',
+      '',
+      '## More Description',
+      '',
+    ].join('\n')
+
+    expect(actual).toEqual(expected)
+  })
+
+  it('should replace the comment region correctly', () => {
+    const description = `<!-- branch-stack-region-start -->
+<!-- branch-stack-region-end -->
+
+- [ ] this checklist
+- [ ] is going to be ok
+
+## More Description
+`
+    const output = ['- main', '  - \\#1'].join('\n')
+
+    const actual = updateDescription({ description, output })
+    const expected = [
+      '<!-- branch-stack-region-start -->',
+      '',
+      '- main',
+      '  - \\#1',
+      '',
+      '<!-- branch-stack-region-end -->',
+      '',
+      '- [ ] this checklist',
+      '- [ ] is going to be ok',
+      '',
+      '## More Description',
+      '',
+    ].join('\n')
+
+    expect(actual).toEqual(expected)
+  })
+
+  it('should replace the comment region correctly, even when no region end is specified', () => {
+    const description = `<!-- branch-stack-region-start -->
+
+- [ ] this checklist
+- [ ] is going to be ok
+
+## More Description
+`
+    const output = ['- main', '  - \\#1'].join('\n')
+
+    const actual = updateDescription({ description, output })
+    const expected = [
+      '<!-- branch-stack-region-start -->',
+      '',
+      '- main',
+      '  - \\#1',
+      '',
+      '<!-- branch-stack-region-end -->',
+      '',
+      '- [ ] this checklist',
+      '- [ ] is going to be ok',
       '',
       '## More Description',
       '',

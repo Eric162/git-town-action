@@ -193,6 +193,10 @@ export async function main({
   await Promise.allSettled(jobs.map((job) => job()))
 }
 
+const ANCHOR = '<!-- branch-stack -->'
+const ANCHOR_REGION_START = '<!-- branch-stack-region-start -->'
+const ANCHOR_REGION_END = '<!-- branch-stack-region-end -->'
+
 export function updateDescription({
   description,
   output,
@@ -200,34 +204,53 @@ export function updateDescription({
   description: string
   output: string
 }) {
-  const ANCHOR = '<!-- branch-stack -->'
-
   const descriptionAst = remark.parse(description)
-  const outputAst = remark.parse(`${ANCHOR}\n${output}`)
 
-  const anchorIndex = descriptionAst.children.findIndex(
+  let usingAnchorRegion = false
+  let anchorIndex = descriptionAst.children.findIndex(
     (node) => node.type === 'html' && node.value === ANCHOR
   )
 
+  if (anchorIndex === -1) {
+    anchorIndex = descriptionAst.children.findIndex(
+      (node) => node.type === 'html' && node.value === ANCHOR_REGION_START
+    )
+
+    usingAnchorRegion = anchorIndex !== -1
+  }
+
+  // if the anchor is the last ast node, set nearestListIndex to anchorIndex for proper splicing
+  let spliceEndIndex =
+    anchorIndex === descriptionAst.children.length - 1 ? anchorIndex : anchorIndex + 1
+
+  if (usingAnchorRegion) {
+    const endAnchorIndex = descriptionAst.children.findIndex(
+      (node) => node.type === 'html' && node.value === ANCHOR_REGION_END
+    )
+
+    spliceEndIndex = endAnchorIndex === -1 ? anchorIndex : endAnchorIndex
+  }
+
   const isMissingAnchor = anchorIndex === -1
+  const outputAst =
+    usingAnchorRegion || isMissingAnchor ?
+      remark.parse(`${ANCHOR_REGION_START}\n${output}\n${ANCHOR_REGION_END}`)
+    : remark.parse(`${ANCHOR}\n${output}`)
+
   if (isMissingAnchor) {
     descriptionAst.children.push(...outputAst.children)
 
     return remark.stringify(descriptionAst)
   }
 
-  // if the anchor is the last ast node, set nearestListIndex to anchorIndex for proper splicing
-  let nearestListIndex =
-    anchorIndex === descriptionAst.children.length - 1 ? anchorIndex : anchorIndex + 1
-
-  // NOTE: this will eat up any list node in direct succession to the anchor comment.
-  if (descriptionAst.children[nearestListIndex]?.type !== 'list') {
-    nearestListIndex = anchorIndex
+  // NOTE: when not using the region syntax, this will eat up any list node in direct succession to the anchor comment.
+  if (!usingAnchorRegion && descriptionAst.children[spliceEndIndex]?.type !== 'list') {
+    spliceEndIndex = anchorIndex
   }
 
   descriptionAst.children.splice(
     anchorIndex,
-    nearestListIndex - anchorIndex + 1,
+    spliceEndIndex - anchorIndex + 1,
     ...outputAst.children
   )
 
